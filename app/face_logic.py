@@ -6,7 +6,8 @@ from pathlib import Path
 import io
 import logging
 
-
+# https://face-recognition.readthedocs.io/en/latest/readme.html
+# https://pypi.org/project/face-recognition/
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def get_next_id() -> int:
     try:
         current = int(ID_COUNTER_FILE.read_text().strip())
     except ValueError:
-        logger.warning("⚠️ Пустой или некорректный id_counter.txt — сбрасываем.")
+        logger.warning("Пустой или некорректный id_counter.txt — сбрасываем.")
         current = START_ID
 
     next_id = current + 1
@@ -37,23 +38,23 @@ def get_next_id() -> int:
 async def process_faces(photos: list[UploadFile], qdrant_client):
     try:
         if len(photos) > MAX_PHOTOS:
-            logger.warning(f"⚠️ Too many photos uploaded ({len(photos)}). Trimming to {MAX_PHOTOS}")
+            logger.warning(f"Too many photos uploaded ({len(photos)}). Trimming to {MAX_PHOTOS}")
             photos = photos[:MAX_PHOTOS]
 
-        logger.info(f"📥 Processing {len(photos)} file(s)")
+        logger.info(f"Processing {len(photos)} file(s)")
         encodings = []
 
         for photo in photos:
-            logger.info(f"🔎 Processing: {photo.filename}")
+            logger.info(f"Processing: {photo.filename}")
             image_bytes = await photo.read()
             image = face_recognition.load_image_file(io.BytesIO(image_bytes))
             detected = face_recognition.face_encodings(image)
 
             if detected and len(detected[0]) == 128:
                 encodings.append(detected[0])
-                logger.info(f"✅ Face found in {photo.filename}")
+                logger.info(f"Face found in {photo.filename}")
             else:
-                logger.warning(f"🚫 No face found in {photo.filename}")
+                logger.warning(f"No face found in {photo.filename}")
 
         if not encodings:
             return {"error": "Kein Gesicht erkannt"}
@@ -61,7 +62,7 @@ async def process_faces(photos: list[UploadFile], qdrant_client):
         face_vector = np.mean(encodings, axis=0)
 
         if not qdrant_client.collection_exists(COLLECTION_NAME):
-            logger.info(f"🆕 Creating collection '{COLLECTION_NAME}' in Qdrant")
+            logger.info(f"Creating collection '{COLLECTION_NAME}' in Qdrant")
             qdrant_client.recreate_collection(
                 collection_name=COLLECTION_NAME,
                 vectors_config=VectorParams(
